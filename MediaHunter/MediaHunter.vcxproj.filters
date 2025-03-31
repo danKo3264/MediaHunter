@@ -24,12 +24,18 @@
     <ClCompile Include="report_generator.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="metadata_checker.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_reader.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="report_generator.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="metadata_checker.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

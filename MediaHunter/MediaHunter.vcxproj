@@ -105,10 +105,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>D:\MediaHunter\MediaHunter\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>D:\MediaHunter\MediaHunter\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -130,10 +132,12 @@
   <ItemGroup>
     <ClCompile Include="file_reader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="metadata_checker.cpp" />
     <ClCompile Include="report_generator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_reader.h" />
+    <ClInclude Include="metadata_checker.h" />
     <ClInclude Include="report_generator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
