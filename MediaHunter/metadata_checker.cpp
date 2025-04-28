@@ -1,48 +1,54 @@
 #include "metadata_checker.h"
+#include "report_generator.h"
 #include <iostream>
+#include <filesystem>
+#include <cstdio>
 #include <fstream>
-#include <cstdio>  // для _popen
-#include <cstdlib>
 
-using namespace std;
+namespace fs = std::filesystem;
 
-MetadataChecker::MetadataChecker() {}
-
-vector<string> MetadataChecker::showMetadata(const string& filePath) {
-    vector<string> lines;
-
-    cout << "----- Метаданные файла -----" << endl;
-    string command = "exiftool \"" + filePath + "\"";
-    FILE* pipe = _popen(command.c_str(), "r");
+// Показать метаданные и вернуть их вектор строк
+std::vector<std::string> MetadataChecker::showMetadata(const std::string& filePath) {
+    std::vector<std::string> lines;
+    std::cout << "\n========================================\n";
+    std::cout << "Анализ файла: " << filePath << "\n";
+    std::string cmd = "exiftool \"" + filePath + "\"";
+    FILE* pipe = _popen(cmd.c_str(), "r");
     if (!pipe) {
-        cout << "Ошибка: не удалось запустить ExifTool." << endl;
+        std::cerr << "Не удалось запустить exiftool\n";
         return lines;
     }
-
-    char buffer[1024];
-    while (fgets(buffer, sizeof(buffer), pipe)) {
-        string line(buffer);
-        cout << line;
-        lines.push_back(line);
+    char buf[1024];
+    while (fgets(buf, sizeof(buf), pipe)) {
+        lines.emplace_back(buf);
+        std::cout << buf;
     }
-
     _pclose(pipe);
-    cout << "-----------------------------" << endl;
+    std::cout << "\n========================================\n";
     return lines;
 }
 
-bool MetadataChecker::exportMetadataToTxt(const vector<string>& metadataLines, const string& outputPath) {
-    ofstream outFile(outputPath);
-    if (!outFile.is_open()) {
-        cout << "Ошибка: не удалось создать файл для записи." << endl;
-        return false;
+// Анализ одного файла
+void MetadataChecker::analyzeFile(const std::string& filePath) {
+    auto metadataLines = showMetadata(filePath);
+
+    ReportGenerator report;
+    report.generateSingleReport(filePath, metadataLines);
+}
+
+// Анализ всех файлов в директории
+void MetadataChecker::analyzeDirectory(const std::string& dirPath) {
+    std::vector<std::pair<std::string, std::vector<std::string>>> allReports;
+
+    for (const auto& entry : fs::directory_iterator(dirPath)) {
+        if (!entry.is_regular_file())
+            continue;
+
+        std::string filePath = entry.path().string();
+        auto metadataLines = showMetadata(filePath);
+        allReports.emplace_back(filePath, metadataLines);
     }
 
-    for (const auto& line : metadataLines) {
-        outFile << line;
-    }
-
-    outFile.close();
-    cout << "Метаданные успешно экспортированы в файл: " << outputPath << endl;
-    return true;
+    ReportGenerator report;
+    report.generateDirectoryReport(dirPath, allReports);
 }

@@ -1,21 +1,19 @@
-#pragma once
 #ifndef METADATA_CHECKER_H
 #define METADATA_CHECKER_H
 
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class MetadataChecker {
 public:
-    MetadataChecker();
+    // Показать метаданные одного файла
+    std::vector<std::string> showMetadata(const std::string& filePath);
 
-    // Показывает метаданные в консоли и возвращает строки для возможного экспорта
-    vector<string> showMetadata(const string& filePath);
+    // Новый функционал: анализ одного файла и сохранение отчёта
+    void analyzeFile(const std::string& filePath);
 
-    // Экспортирует метаданные в .txt файл
-    bool exportMetadataToTxt(const vector<string>& metadataLines, const string& outputPath);
+    // Новый функционал: анализ директории и сохранение общего отчёта
+    void analyzeDirectory(const std::string& dirPath);
 };
 
 #endif // METADATA_CHECKER_H

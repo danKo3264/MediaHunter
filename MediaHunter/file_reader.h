@@ -1,31 +1,19 @@
-#ifndef FILE_READER_H
+п»ї#ifndef FILE_READER_H
 #define FILE_READER_H
 
-#include <iostream>    // Для вывода ошибок и сообщений
-#include <fstream>     // Для работы с файлами (ifstream)
-#include <vector>      // Для хранения бинарных данных файла
-#include <string>      // Для работы со строками
-#include <unordered_map> // Для хранения сигнатур файлов
+#include <string>
+#include <vector>
+#include <cstdint>
 
-using namespace std;
-
-// Класс FileReader отвечает за чтение файлов и определение их типа по "magic bytes"
+// РџСЂРѕСЃС‚РѕРµ С‡С‚РµРЅРёРµ РїСЂРѕРёР·РІРѕР»СЊРЅРѕРіРѕ С„Р°Р№Р»Р° РІ РїР°РјСЏС‚СЊ + РѕРїСЂРµРґРµР»РµРЅРёРµ С‚РёРїР° РїРѕ magicвЂ‘bytes
 class FileReader {
 public:
-    // Конструктор принимает путь к файлу в виде строки
-    explicit FileReader(const string& filePath);
-
-    // Функция loadFile загружает содержимое файла в бинарный вектор buffer
-    // Возвращает true, если файл успешно прочитан, иначе false
-    bool loadFile(vector<uint8_t>& buffer);
-
-    // Функция detectFileType анализирует первые байты файла (magic bytes)
-    // и возвращает тип файла (например, \"JPEG\", \"PNG\", \"PDF\", и т.д.)
-    string detectFileType(const vector<uint8_t>& buffer);
+    explicit FileReader(const std::string& filePath);
+    bool loadFile(std::vector<uint8_t>& buffer);               // Р·Р°РіСЂСѓР·РёС‚СЊ РІРµСЃСЊ С„Р°Р№Р» РІ buffer
+    std::string detectFileType(const std::vector<uint8_t>& buffer) const; // РѕРїСЂРµРґРµР»РёС‚СЊ С‚РёРї
 
 private:
-    // Хранит путь к файлу, который нужно прочитать
-    string filePath;
+    std::string filePath_;
 };
 
 #endif // FILE_READER_H

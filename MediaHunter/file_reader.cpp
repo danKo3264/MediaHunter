@@ -1,55 +1,74 @@
-#include "file_reader.h"  // Подключаем заголовочный файл с объявлением класса
-#include <fstream>        // Для работы с файлами
-#include <algorithm>      // Для функции std::equal
+п»ї#include "file_reader.h"
+#include <fstream>
+#include <algorithm>
+#include <unordered_map>
+#include <iostream>
 
-// Конструктор класса, сохраняющий путь к файлу
-FileReader::FileReader(const string& filePath) : filePath(filePath) {}
+FileReader::FileReader(const std::string& filePath)
+    : filePath_(filePath) {
+}
 
-// Функция loadFile загружает содержимое файла в бинарный вектор buffer
-bool FileReader::loadFile(vector<uint8_t>& buffer) {
-    // Открываем файл в бинарном режиме
-    ifstream file(filePath, ios::binary);
-    if (!file) {
-        cerr << "Ошибка: не удалось открыть файл: " << filePath << endl;
+bool FileReader::loadFile(std::vector<uint8_t>& buffer) {
+    std::ifstream in(filePath_, std::ios::binary);
+    if (!in) {
+        std::cerr << "РћС€РёР±РєР°: РЅРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ С„Р°Р№Р»: " << filePath_ << "\n";
         return false;
     }
-
-    // Определяем размер файла
-    file.seekg(0, ios::end);
-    size_t fileSize = file.tellg();
-    file.seekg(0, ios::beg);
-
-    // Изменяем размер вектора для хранения всех данных файла
-    buffer.resize(fileSize);
-
-    // Читаем данные файла в буфер
-    file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
-    file.close();
-
+    in.seekg(0, std::ios::end);
+    auto size = in.tellg();
+    in.seekg(0, std::ios::beg);
+    if (size < 0) size = 0;
+    buffer.resize(static_cast<size_t>(size));
+    in.read(reinterpret_cast<char*>(buffer.data()), size);
     return true;
 }
 
-// Функция detectFileType анализирует первые байты (magic bytes) файла
-// и пытается определить тип файла по известным сигнатурам.
-// Из списка удалён PDF, так как он не считается медиа-файлом.
-string FileReader::detectFileType(const vector<uint8_t>& buffer) {
-    // Если размер буфера слишком маленький, определить тип невозможно
-    if (buffer.size() < 4)
-        return "Unknown";
+std::string FileReader::detectFileType(const std::vector<uint8_t>& buf) const {
+    if (buf.size() < 12) return "Unknown";
 
-    // Список известных сигнатур файлов с соответствующими magic bytes
-    unordered_map<string, vector<uint8_t>> signatures = {
-        {"JPEG", {0xFF, 0xD8, 0xFF}},
-        {"PNG",  {0x89, 0x50, 0x4E, 0x47}},
-        {"MP4",  {0x66, 0x74, 0x79, 0x70}},
-        {"MP3",  {0x49, 0x44, 0x33}}  // ID3 тег MP3
+    struct Magic {
+        std::string type;
+        std::vector<uint8_t> sig;
+        size_t offset;
     };
 
-    // Проходим по списку сигнатур и проверяем, соответствует ли начало файла одной из них
-    for (const auto& [type, signature] : signatures) {
-        if (buffer.size() >= signature.size() && equal(signature.begin(), signature.end(), buffer.begin())) {
-            return type;
+    std::vector<Magic> signatures = {
+        {"JPEG",   {0xFF, 0xD8, 0xFF}, 0},
+        {"PNG",    {0x89, 0x50, 0x4E, 0x47}, 0},
+        {"BMP",    {0x42, 0x4D}, 0},
+        {"MP3",    {0x49, 0x44, 0x33}, 0},
+        {"MP4",    {'f', 't', 'y', 'p'}, 4},
+        {"WebM",   {'w', 'e', 'b', 'm'}, 31},
+        {"MKV",    {0x1A, 0x45, 0xDF, 0xA3}, 0},
+        {"PSD",    {0x38, 0x42, 0x50, 0x53}, 0},
+        {"HEVC",   {0x00, 0x00, 0x00, 0x01, 0x40}, 0}, // NAL Unit for HEVC
+        {"AV1",    {'A', 'V', '1'}, 4},
+        {"TIFF",   {0x49, 0x49, 0x2A, 0x00}, 0},
+        {"TIFF",   {0x4D, 0x4D, 0x00, 0x2A}, 0},
+        {"CR2",    {0x49, 0x49, 0x2A, 0x00, 0x10, 0x00, 0x00, 0x00, 'C', 'R'}, 0},
+        {"NEF",    {0x49, 0x49, 0x2A, 0x00}, 0},
+        {"DNG",    {0x49, 0x49, 0x2A, 0x00}, 0},
+        {"EMF",    {0x01, 0x00, 0x00, 0x00}, 40},
+        {"WMF",    {0xD7, 0xCD, 0xC6, 0x9A}, 0},
+        {"RIFF",   {'R', 'I', 'F', 'F'}, 0} // РћР±С‰РµРµ СЂР°СЃРїРѕР·РЅР°РІР°РЅРёРµ RIFF-С„Р°Р№Р»РѕРІ (AVI/WebP)
+    };
+
+    for (const auto& s : signatures) {
+        if (buf.size() >= s.offset + s.sig.size() &&
+            std::equal(s.sig.begin(), s.sig.end(), buf.begin() + s.offset)) {
+            // РЎРїРµС†РёР°Р»СЊРЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° RIFF: РѕС‚Р»РёС‡РёС‚СЊ WebP РѕС‚ AVI
+            if (s.type == "RIFF") {
+                if (buf.size() >= 12 && std::equal(buf.begin() + 8, buf.begin() + 12, reinterpret_cast<const uint8_t*>("WEBP"))) {
+                    return "WEBP";
+                }
+                else {
+                    return "AVI";
+                }
+            }
+            return s.type;
         }
     }
+
     return "Unknown";
 }
+

@@ -1,17 +1,26 @@
+#if defined(_WIN32)
+#  define NOMINMAX
+#endif
+#undef max
+#undef min
+
 #include <iostream>
 #include <string>
 #include <filesystem>
 #include <limits>
 #include <vector>
 #include <utility>
+
 #include "file_reader.h"
 #include "report_generator.h"
 #include "metadata_checker.h"
+#include "steganography_checker.h"
+#include "signature_scanner.h"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-// Функция для очистки консоли
+// Очистка консоли
 void clearConsole() {
 #ifdef _WIN32
     system("cls");
@@ -20,186 +29,193 @@ void clearConsole() {
 #endif
 }
 
-// Отображение главного меню
+// Главное меню
 void showMenu() {
-    cout << "=== MediaHunter ===" << endl;
-    cout << "Выберите тип анализа:" << endl;
-    cout << "1) Анализ фото/видео файлов" << endl;
-    cout << "2) Анализ метаданных файла" << endl;
-    cout << "3) Поиск стеганографических встраиваний" << endl;
-    cout << "4) Проверка скрытых расширений файлов" << endl;
-    cout << "5) Общий анализ" << endl;
-    cout << "0) Выход" << endl;
-    cout << "Введите номер пункта: ";
+    cout << "=== MediaHunter ===\n"
+        << "Выберите тип анализа:\n"
+        << "1) Анализ фото/видео файлов\n"
+        << "2) Анализ метаданных файла\n"
+        << "3) Поиск стеганографических встраиваний\n"
+        << "4) Проверка скрытых расширений файлов\n"
+        << "5) Общий анализ\n"
+        << "0) Выход\n"
+        << "Введите номер пункта: ";
 }
 
-// Отображение меню выбора режима работы (файл или директория)
+// Меню выбора файла или директории
 void showFileMenu() {
-    cout << "Выберите режим работы:" << endl;
-    cout << "1) Анализ файла" << endl;
-    cout << "2) Анализ директории с файлами" << endl;
-    cout << "0) Назад" << endl;
-    cout << "Введите номер пункта: ";
+    cout << "Выберите режим работы:\n"
+        << "1) Анализ файла\n"
+        << "2) Анализ директории с файлами\n"
+        << "0) Назад\n"
+        << "Введите номер пункта: ";
 }
 
-// Функция проверки корректности пути
+// Проверка корректности пути
 bool isValidPath(const string& path, bool isFile) {
     try {
-        if (isFile)
-            return fs::is_regular_file(path);
-        else
-            return fs::is_directory(path);
+        return isFile ? fs::is_regular_file(path) : fs::is_directory(path);
     }
-    catch (const fs::filesystem_error&) {
+    catch (...) {
         return false;
     }
 }
 
 int main() {
     setlocale(LC_ALL, "Russian");
-    int choice;
-    do {
+
+    while (true) {
         clearConsole();
         showMenu();
+
+        int choice;
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!" << endl;
+            cout << "Ошибка: введите число!\n";
             cin.get();
             continue;
         }
-        if (choice == 0)
-            break;
+        if (choice == 0) break;
         if (choice < 1 || choice > 5) {
-            cout << "Ошибка: выберите корректный пункт." << endl;
-            cin.ignore();
+            cout << "Ошибка: выберите корректный пункт.\n";
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
         }
 
         clearConsole();
         showFileMenu();
+
         int fileChoice;
         if (!(cin >> fileChoice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!" << endl;
+            cout << "Ошибка: введите число!\n";
             cin.get();
             continue;
         }
-        if (fileChoice == 0)
-            continue;
+        if (fileChoice == 0) continue;
         if (fileChoice < 1 || fileChoice > 2) {
-            cout << "Ошибка: выберите корректный пункт." << endl;
-            cin.ignore();
+            cout << "Ошибка: выберите корректный пункт.\n";
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
         }
-        cout << "Введите путь к " << (fileChoice == 1 ? "файлу" : "директории") << ": ";
+
+        cout << "Введите путь к "
+            << (fileChoice == 1 ? "файлу" : "директории")
+            << ": ";
         string path;
         cin >> ws;
         getline(cin, path);
+
         if (!isValidPath(path, fileChoice == 1)) {
-            cout << "Ошибка: путь недействителен!" << endl;
+            cout << "Ошибка: путь недействителен!\n";
             cin.get();
             continue;
         }
 
-        cout << "Запуск анализа..." << endl;
-        // Выбор анализа в зависимости от основного пункта меню
-        if (choice == 1) { // Анализ фото/видео файлов
-            if (fileChoice == 1) {
-                FileReader reader(path);
-                vector<uint8_t> fileData;
-                if (!reader.loadFile(fileData)) {
-                    cout << "Ошибка при чтении файла!" << endl;
+        cout << "\nЗапуск анализа...\n\n";
+
+        switch (choice) {
+        case 1: {  // Анализ фото/видео (сигнатурный сканер YARA)
+            try {
+                SignatureScanner scanner("rules.yar");
+
+                if (fileChoice == 1) {
+                    std::string threat = scanner.analyzeFile(path);
+                    cout << "\n========================================\n";
+                    cout << "Анализ файла: " << path << "\n\n";
+                    if (threat == "OK") {
+                        cout << "Результат: Угроз не обнаружено\n";
+                    }
+                    else {
+                        cout << "Результат: Обнаружена угроза " << threat << "\n";
+                    }
+                    cout << "========================================\n\n";
+
+                    // Сохраняем результат в отчёт
+                    ReportGenerator report;
+                    vector<string> lines;
+                    if (threat == "OK") {
+                        lines.push_back("Угроз не обнаружено");
+                    }
+                    else {
+                        lines.push_back("Обнаружена угроза " + threat);
+                    }
+                    report.generateSingleReport(path, lines);
                 }
                 else {
-                    string fileType = reader.detectFileType(fileData);
-                    cout << "Определённый тип файла: " << fileType << endl;
-                    bool threatFound = (fileType == "Unknown"); // Пример логики
-                    ReportGenerator report;
-                    report.generate(path, threatFound, "txt");
-                }
-            }
-            else { // Анализ директории
-                vector<pair<string, bool>> dirResults;
-                for (const auto& entry : fs::directory_iterator(path)) {
-                    if (entry.is_regular_file()) {
+                    vector<pair<string, vector<string>>> allReports;
+                    for (const auto& entry : fs::directory_iterator(path)) {
+                        if (!entry.is_regular_file()) continue;
                         string filePath = entry.path().string();
-                        cout << "Анализ файла: " << filePath << endl;
-                        FileReader reader(filePath);
-                        vector<uint8_t> fileData;
-                        bool threatFound = false;
-                        if (reader.loadFile(fileData)) {
-                            string fileType = reader.detectFileType(fileData);
-                            cout << "  -> Тип файла: " << fileType << endl;
-                            threatFound = (fileType == "Unknown");
+                        std::string threat = scanner.analyzeFile(filePath);
+                        cout << "\n========================================\n";
+                        cout << "Анализ файла: " << filePath << "\n\n";
+                        if (threat == "OK") {
+                            cout << "Результат: Угроз не обнаружено\n";
                         }
                         else {
-                            cout << "  -> Ошибка чтения файла!" << endl;
-                            threatFound = true;
+                            cout << "Результат: Обнаружена угроза " << threat << "\n";
                         }
-                        dirResults.push_back(make_pair(filePath, threatFound));
+                        cout << "========================================\n";
+
+                        vector<string> lines;
+                        if (threat == "OK") {
+                            lines.push_back("Угроз не обнаружено");
+                        }
+                        else {
+                            lines.push_back("Обнаружена угроза " + threat);
+                        }
+                        allReports.emplace_back(filePath, lines);
                     }
+                    cout << "\n";
+                    ReportGenerator report;
+                    report.generateDirectoryReport(path, allReports);
                 }
-                ReportGenerator report;
-                report.generateDirectoryReport(path, dirResults, "txt");
             }
+            catch (const std::runtime_error& ex) {
+                cerr << "Ошибка сканирования: " << ex.what() << "\n";
+            }
+            break;
         }
-        else if (choice == 2) { // Анализ метаданных
+
+        case 2: {  // Анализ метаданных
             MetadataChecker checker;
-
-            if (fileChoice == 1) { // Анализ файла
-                vector<string> metadata = checker.showMetadata(path);
-
-                cout << "Сохранить метаданные в текстовый файл? (y/n): ";
-                char response;
-                cin >> response;
-                cin.ignore(); // чтобы избежать проблем со следующим вводом
-
-                if (response == 'y' || response == 'Y') {
-                    string outputPath = path + "_metadata.txt";
-                    checker.exportMetadataToTxt(metadata, outputPath);
-                }
+            if (fileChoice == 1) {
+                checker.analyzeFile(path);
             }
-            else { // Анализ директории
-                for (const auto& entry : fs::directory_iterator(path)) {
-                    if (entry.is_regular_file()) {
-                        string filePath = entry.path().string();
-                        cout << "\nАнализ метаданных файла: " << filePath << endl;
-
-                        vector<string> metadata = checker.showMetadata(filePath);
-
-                        cout << "Сохранить метаданные в текстовый файл для этого файла? (y/n): ";
-                        char response;
-                        cin >> response;
-                        cin.ignore(); // чтобы избежать проблем со следующим вводом
-
-                        if (response == 'y' || response == 'Y') {
-                            string outputPath = filePath + "_metadata.txt";
-                            checker.exportMetadataToTxt(metadata, outputPath);
-                        }
-                    }
-                }
+            else {
+                checker.analyzeDirectory(path);
             }
+            break;
         }
 
-        else if (choice == 3) { // Поиск стеганографических встраиваний
-            cout << "Модуль поиска стеганографии пока не реализован." << endl;
-        }
-        else if (choice == 4) { // Проверка скрытых расширений файлов
-            cout << "Модуль проверки скрытых расширений пока не реализован." << endl;
-        }
-        else if (choice == 5) { // Общий анализ
-            cout << "Общий анализ пока не реализован." << endl;
+        case 3: {  // Поиск стеганографии
+            SteganographyChecker checker;
+            if (fileChoice == 1)
+                checker.analyzeFile(path);
+            else
+                checker.analyzeDirectory(path);
+            break;
         }
 
-        cout << "Нажмите Enter для возврата в меню..." << endl;
-        cin.ignore();
+        case 4:
+            cout << "Модуль проверки скрытых расширений пока не реализован.\n";
+            break;
+
+        case 5:
+            cout << "Общий анализ пока не реализован.\n";
+            break;
+        }
+
+        cout << "\nНажмите Enter для возврата в меню...";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cin.get();
-    } while (choice != 0);
+    }
 
-    cout << "Выход из программы." << endl;
+    cout << "Выход из программы.\n";
     return 0;
 }

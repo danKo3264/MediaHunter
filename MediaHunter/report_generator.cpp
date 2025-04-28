@@ -1,68 +1,60 @@
 #include "report_generator.h"
 #include <fstream>
 #include <iostream>
+#include <filesystem>
+#include <limits>
 
-using namespace std;
+namespace fs = std::filesystem;
 
-void ReportGenerator::generate(const string& filePath, bool threatsFound, const string& format) {
-    string reportFileName;
-    if (format == "html") {
-        reportFileName = filePath + ".report.html";
-    }
-    else {
-        reportFileName = filePath + ".report.txt";
-    }
-    ofstream reportFile(reportFileName);
-    if (!reportFile) {
-        cerr << "Ошибка: не удалось создать файл отчёта: " << reportFileName << endl;
-        return;
-    }
-    if (format == "html") {
-        reportFile << "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Отчёт по файлу</title>\n</head>\n<body>\n";
-        reportFile << "<h1>Отчёт по файлу: " << filePath << "</h1>\n";
-        reportFile << "<p>Результат анализа: " << (threatsFound ? "<span style=\"color:red;\">Угрозы обнаружены</span>" : "<span style=\"color:green;\">Угрозы не обнаружены</span>") << "</p>\n";
-        reportFile << "</body>\n</html>\n";
-    }
-    else {
-        reportFile << "Отчёт по файлу: " << filePath << "\n";
-        reportFile << "Результат анализа: " << (threatsFound ? "Угрозы обнаружены" : "Угрозы не обнаружены") << "\n";
-    }
-    reportFile.close();
-    cout << "Отчёт сохранён в файле: " << reportFileName << endl;
+// Запрос у пользователя подтверждения сохранения
+bool ReportGenerator::askUserToSave(const std::string& description) {
+    std::cout << "\nСохранить " << description << "? (y/n): ";
+    char response;
+    std::cin >> response;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    return (response == 'y' || response == 'Y');
 }
 
-void ReportGenerator::generateDirectoryReport(const string& dirPath, const vector<pair<string, bool>>& results, const string& format) {
-    string reportFileName;
-    if (format == "html") {
-        reportFileName = dirPath + "/directory_report.html";
-    }
-    else {
-        reportFileName = dirPath + "/directory_report.txt";
-    }
-    ofstream reportFile(reportFileName);
-    if (!reportFile) {
-        cerr << "Ошибка: не удалось создать файл отчёта: " << reportFileName << endl;
+// Генерация отчёта для одного файла
+void ReportGenerator::generateSingleReport(const std::string& filePath, const std::vector<std::string>& reportLines) {
+    if (!askUserToSave("отчёт для файла")) {
+        std::cout << "Отмена сохранения отчёта.\n";
         return;
     }
-    if (format == "html") {
-        reportFile << "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Отчёт по директории</title>\n</head>\n<body>\n";
-        reportFile << "<h1>Отчёт по директории: " << dirPath << "</h1>\n";
-        reportFile << "<table border=\"1\">\n<tr><th>Файл</th><th>Результат анализа</th></tr>\n";
-        for (const auto& [filePath, threatFound] : results) {
-            reportFile << "<tr><td>" << filePath << "</td><td>"
-                << (threatFound ? "<span style=\"color:red;\">Угрозы обнаружены</span>"
-                    : "<span style=\"color:green;\">Угрозы не обнаружены</span>")
-                << "</td></tr>\n";
-        }
-        reportFile << "</table>\n</body>\n</html>\n";
+
+    std::string outPath = filePath + "_report.txt";
+    std::ofstream out(outPath);
+    if (!out) {
+        std::cerr << "Не удалось создать отчёт: " << outPath << "\n";
+        return;
     }
-    else {
-        reportFile << "Отчёт по директории: " << dirPath << "\n\n";
-        for (const auto& [filePath, threatFound] : results) {
-            reportFile << "Файл: " << filePath << "\nРезультат анализа: "
-                << (threatFound ? "Угрозы обнаружены" : "Угрозы не обнаружены") << "\n\n";
-        }
+
+    for (const auto& line : reportLines) {
+        out << line << "\n";
     }
-    reportFile.close();
-    cout << "Общий отчёт по директории сохранён в файле: " << reportFileName << endl;
+    std::cout << "Отчёт сохранён: " << outPath << "\n";
+}
+
+// Генерация общего отчёта для директории
+void ReportGenerator::generateDirectoryReport(const std::string& dirPath, const std::vector<std::pair<std::string, std::vector<std::string>>>& fileReports) {
+    if (!askUserToSave("общий отчёт для директории")) {
+        std::cout << "Отмена сохранения отчёта.\n";
+        return;
+    }
+
+    std::string outPath = (fs::path(dirPath) / "directory_report.txt").string();
+    std::ofstream out(outPath);
+    if (!out) {
+        std::cerr << "Не удалось создать отчёт: " << outPath << "\n";
+        return;
+    }
+
+    for (const auto& [filePath, lines] : fileReports) {
+        out << "Файл: " << filePath << "\n";
+        for (const auto& line : lines) {
+            out << line << "\n";
+        }
+        out << "\n";
+    }
+    std::cout << "Общий отчёт сохранён: " << outPath << "\n";
 }

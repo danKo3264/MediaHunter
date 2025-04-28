@@ -111,6 +111,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>D:\MediaHunter\MediaHunter\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);libyara.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,11 +135,18 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="metadata_checker.cpp" />
     <ClCompile Include="report_generator.cpp" />
+    <ClCompile Include="signature_scanner.cpp" />
+    <ClCompile Include="steganography_checker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_reader.h" />
     <ClInclude Include="metadata_checker.h" />
     <ClInclude Include="report_generator.h" />
+    <ClInclude Include="signature_scanner.h" />
+    <ClInclude Include="steganography_checker.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="rules.yar" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
