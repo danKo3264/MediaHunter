@@ -1,13 +1,13 @@
-#ifndef METADATA_CHECKER_H
-#define METADATA_CHECKER_H
+#ifndef EXTENSION_CHECKER_H
+#define EXTENSION_CHECKER_H
 
 #include <string>
 #include <vector>
 
-class MetadataChecker {
+class ExtensionChecker {
 public:
     std::vector<std::string> analyzeFile(const std::string& filePath);
     std::vector<std::pair<std::string, std::vector<std::string>>> analyzeDirectory(const std::string& dirPath);
 };
 
-#endif // METADATA_CHECKER_H
+#endif // EXTENSION_CHECKER_H

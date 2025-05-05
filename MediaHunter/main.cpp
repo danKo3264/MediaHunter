@@ -1,4 +1,4 @@
-#if defined(_WIN32)
+п»ї#if defined(_WIN32)
 #  define NOMINMAX
 #endif
 #undef max
@@ -13,14 +13,16 @@
 
 #include "file_reader.h"
 #include "report_generator.h"
+#include "signature_scanner.h"
 #include "metadata_checker.h"
 #include "steganography_checker.h"
-#include "signature_scanner.h"
+#include "extension_checker.h"
+#include "full_analyzer.h"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-// Очистка консоли
+// РћС‡РёСЃС‚РєР° РєРѕРЅСЃРѕР»Рё
 void clearConsole() {
 #ifdef _WIN32
     system("cls");
@@ -29,29 +31,29 @@ void clearConsole() {
 #endif
 }
 
-// Главное меню
+// Р“Р»Р°РІРЅРѕРµ РјРµРЅСЋ
 void showMenu() {
     cout << "=== MediaHunter ===\n"
-        << "Выберите тип анализа:\n"
-        << "1) Анализ фото/видео файлов\n"
-        << "2) Анализ метаданных файла\n"
-        << "3) Поиск стеганографических встраиваний\n"
-        << "4) Проверка скрытых расширений файлов\n"
-        << "5) Общий анализ\n"
-        << "0) Выход\n"
-        << "Введите номер пункта: ";
+        << "Р’С‹Р±РµСЂРёС‚Рµ С‚РёРї Р°РЅР°Р»РёР·Р°:\n"
+        << "1) РђРЅР°Р»РёР· С„РѕС‚Рѕ/РІРёРґРµРѕ С„Р°Р№Р»РѕРІ\n"
+        << "2) РђРЅР°Р»РёР· РјРµС‚Р°РґР°РЅРЅС‹С… С„Р°Р№Р»Р°\n"
+        << "3) РџРѕРёСЃРє СЃС‚РµРіР°РЅРѕРіСЂР°С„РёС‡РµСЃРєРёС… РІСЃС‚СЂР°РёРІР°РЅРёР№\n"
+        << "4) РџСЂРѕРІРµСЂРєР° СЃРєСЂС‹С‚С‹С… СЂР°СЃС€РёСЂРµРЅРёР№ С„Р°Р№Р»РѕРІ\n"
+        << "5) РћР±С‰РёР№ Р°РЅР°Р»РёР·\n"
+        << "0) Р’С‹С…РѕРґ\n"
+        << "Р’РІРµРґРёС‚Рµ РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°: ";
 }
 
-// Меню выбора файла или директории
+// РњРµРЅСЋ РІС‹Р±РѕСЂР° С„Р°Р№Р»Р° РёР»Рё РґРёСЂРµРєС‚РѕСЂРёРё
 void showFileMenu() {
-    cout << "Выберите режим работы:\n"
-        << "1) Анализ файла\n"
-        << "2) Анализ директории с файлами\n"
-        << "0) Назад\n"
-        << "Введите номер пункта: ";
+    cout << "Р’С‹Р±РµСЂРёС‚Рµ СЂРµР¶РёРј СЂР°Р±РѕС‚С‹:\n"
+        << "1) РђРЅР°Р»РёР· С„Р°Р№Р»Р°\n"
+        << "2) РђРЅР°Р»РёР· РґРёСЂРµРєС‚РѕСЂРёРё СЃ С„Р°Р№Р»Р°РјРё\n"
+        << "0) РќР°Р·Р°Рґ\n"
+        << "Р’РІРµРґРёС‚Рµ РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°: ";
 }
 
-// Проверка корректности пути
+// РџСЂРѕРІРµСЂРєР° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚Рё РїСѓС‚Рё
 bool isValidPath(const string& path, bool isFile) {
     try {
         return isFile ? fs::is_regular_file(path) : fs::is_directory(path);
@@ -72,13 +74,13 @@ int main() {
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!\n";
+            cout << "РћС€РёР±РєР°: РІРІРµРґРёС‚Рµ С‡РёСЃР»Рѕ!\n";
             cin.get();
             continue;
         }
         if (choice == 0) break;
         if (choice < 1 || choice > 5) {
-            cout << "Ошибка: выберите корректный пункт.\n";
+            cout << "РћС€РёР±РєР°: РІС‹Р±РµСЂРёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ РїСѓРЅРєС‚.\n";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
@@ -91,58 +93,58 @@ int main() {
         if (!(cin >> fileChoice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!\n";
+            cout << "РћС€РёР±РєР°: РІРІРµРґРёС‚Рµ С‡РёСЃР»Рѕ!\n";
             cin.get();
             continue;
         }
         if (fileChoice == 0) continue;
         if (fileChoice < 1 || fileChoice > 2) {
-            cout << "Ошибка: выберите корректный пункт.\n";
+            cout << "РћС€РёР±РєР°: РІС‹Р±РµСЂРёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ РїСѓРЅРєС‚.\n";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
         }
 
-        cout << "Введите путь к "
-            << (fileChoice == 1 ? "файлу" : "директории")
+        cout << "Р’РІРµРґРёС‚Рµ РїСѓС‚СЊ Рє "
+            << (fileChoice == 1 ? "С„Р°Р№Р»Сѓ" : "РґРёСЂРµРєС‚РѕСЂРёРё")
             << ": ";
         string path;
         cin >> ws;
         getline(cin, path);
 
         if (!isValidPath(path, fileChoice == 1)) {
-            cout << "Ошибка: путь недействителен!\n";
+            cout << "РћС€РёР±РєР°: РїСѓС‚СЊ РЅРµРґРµР№СЃС‚РІРёС‚РµР»РµРЅ!\n";
             cin.get();
             continue;
         }
 
-        cout << "\nЗапуск анализа...\n\n";
+        cout << "Р—Р°РїСѓСЃРє Р°РЅР°Р»РёР·Р°...\n\n";
 
         switch (choice) {
-        case 1: {  // Анализ фото/видео (сигнатурный сканер YARA)
+        case 1: {  // РђРЅР°Р»РёР· С„РѕС‚Рѕ/РІРёРґРµРѕ (СЃРёРіРЅР°С‚СѓСЂРЅС‹Р№ СЃРєР°РЅРµСЂ YARA)
             try {
                 SignatureScanner scanner("rules.yar");
 
                 if (fileChoice == 1) {
                     std::string threat = scanner.analyzeFile(path);
-                    cout << "\n========================================\n";
-                    cout << "Анализ файла: " << path << "\n\n";
+                    cout << "========================================\n";
+                    cout << "РђРЅР°Р»РёР· С„Р°Р№Р»Р°: " << path << "\n\n";
                     if (threat == "OK") {
-                        cout << "Результат: Угроз не обнаружено\n";
+                        cout << "Р РµР·СѓР»СЊС‚Р°С‚: РЈРіСЂРѕР· РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ\n";
                     }
                     else {
-                        cout << "Результат: Обнаружена угроза " << threat << "\n";
+                        cout << "Р РµР·СѓР»СЊС‚Р°С‚: РћР±РЅР°СЂСѓР¶РµРЅР° СѓРіСЂРѕР·Р° " << threat << "\n";
                     }
                     cout << "========================================\n\n";
 
-                    // Сохраняем результат в отчёт
+                    // РЎРѕС…СЂР°РЅСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚ РІ РѕС‚С‡С‘С‚
                     ReportGenerator report;
                     vector<string> lines;
                     if (threat == "OK") {
-                        lines.push_back("Угроз не обнаружено");
+                        lines.push_back("РЈРіСЂРѕР· РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ");
                     }
                     else {
-                        lines.push_back("Обнаружена угроза " + threat);
+                        lines.push_back("РћР±РЅР°СЂСѓР¶РµРЅР° СѓРіСЂРѕР·Р° " + threat);
                     }
                     report.generateSingleReport(path, lines);
                 }
@@ -152,22 +154,22 @@ int main() {
                         if (!entry.is_regular_file()) continue;
                         string filePath = entry.path().string();
                         std::string threat = scanner.analyzeFile(filePath);
-                        cout << "\n========================================\n";
-                        cout << "Анализ файла: " << filePath << "\n\n";
+                        cout << "========================================\n";
+                        cout << "РђРЅР°Р»РёР· С„Р°Р№Р»Р°: " << filePath << "\n\n";
                         if (threat == "OK") {
-                            cout << "Результат: Угроз не обнаружено\n";
+                            cout << "Р РµР·СѓР»СЊС‚Р°С‚: РЈРіСЂРѕР· РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ\n";
                         }
                         else {
-                            cout << "Результат: Обнаружена угроза " << threat << "\n";
+                            cout << "Р РµР·СѓР»СЊС‚Р°С‚: РћР±РЅР°СЂСѓР¶РµРЅР° СѓРіСЂРѕР·Р° " << threat << "\n";
                         }
                         cout << "========================================\n";
 
                         vector<string> lines;
                         if (threat == "OK") {
-                            lines.push_back("Угроз не обнаружено");
+                            lines.push_back("РЈРіСЂРѕР· РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ");
                         }
                         else {
-                            lines.push_back("Обнаружена угроза " + threat);
+                            lines.push_back("РћР±РЅР°СЂСѓР¶РµРЅР° СѓРіСЂРѕР·Р° " + threat);
                         }
                         allReports.emplace_back(filePath, lines);
                     }
@@ -177,45 +179,86 @@ int main() {
                 }
             }
             catch (const std::runtime_error& ex) {
-                cerr << "Ошибка сканирования: " << ex.what() << "\n";
+                cerr << "РћС€РёР±РєР° СЃРєР°РЅРёСЂРѕРІР°РЅРёСЏ: " << ex.what() << "\n";
             }
             break;
         }
 
-        case 2: {  // Анализ метаданных
+        case 2: {  // РђРЅР°Р»РёР· РјРµС‚Р°РґР°РЅРЅС‹С…
             MetadataChecker checker;
             if (fileChoice == 1) {
-                checker.analyzeFile(path);
+                auto result = checker.analyzeFile(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateSingleReport(path, result);
             }
             else {
-                checker.analyzeDirectory(path);
+                MetadataChecker checker;
+                auto reports = checker.analyzeDirectory(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateDirectoryReport(path, reports);
             }
             break;
         }
 
-        case 3: {  // Поиск стеганографии
+        case 3: {  // РџРѕРёСЃРє СЃС‚РµРіР°РЅРѕРіСЂР°С„РёРё
             SteganographyChecker checker;
-            if (fileChoice == 1)
-                checker.analyzeFile(path);
-            else
-                checker.analyzeDirectory(path);
+            if (fileChoice == 1) {
+                auto result = checker.analyzeFile(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateSingleReport(path, result);
+            }
+            else {
+                auto reports = checker.analyzeDirectory(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateDirectoryReport(path, reports);
+            }
             break;
         }
 
-        case 4:
-            cout << "Модуль проверки скрытых расширений пока не реализован.\n";
+        case 4: {  // РџСЂРѕРІРµСЂРєР° СЃРєСЂС‹С‚С‹С… СЂР°СЃС€РёСЂРµРЅРёР№
+            ExtensionChecker checker;
+            if (fileChoice == 1) {
+                auto result = checker.analyzeFile(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateSingleReport(path, result);
+            }
+            else {
+                auto reports = checker.analyzeDirectory(path);
+                cout << "\n";
+                ReportGenerator report;
+                report.generateDirectoryReport(path, reports);
+            }
             break;
+        }
+
 
         case 5:
-            cout << "Общий анализ пока не реализован.\n";
+            FullAnalyzer analyzer("rules.yar");
+
+            if (fileChoice == 1) {
+                auto result = analyzer.analyzeFile(path);
+                std::cout << "\n";
+                ReportGenerator report;
+                report.generateSingleReport(path, result);
+            }
+            else {
+                auto reports = analyzer.analyzeDirectory(path);
+                ReportGenerator report;
+                report.generateDirectoryReport(path, reports);
+            }
             break;
         }
 
-        cout << "\nНажмите Enter для возврата в меню...";
+        cout << "\nРќР°Р¶РјРёС‚Рµ Enter РґР»СЏ РІРѕР·РІСЂР°С‚Р° РІ РјРµРЅСЋ...";
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cin.get();
     }
 
-    cout << "Выход из программы.\n";
+    cout << "Р’С‹С…РѕРґ РёР· РїСЂРѕРіСЂР°РјРјС‹.\n";
     return 0;
 }

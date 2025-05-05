@@ -9,12 +9,14 @@
 
 namespace fs = std::filesystem;
 
-void SteganographyChecker::analyzeFile(const std::string& filePath) {
+std::vector<std::string> SteganographyChecker::analyzeFile(const std::string& filePath) {
+    std::vector<std::string> reportLines;
     FileReader reader(filePath);
     std::vector<uint8_t> buffer;
     if (!reader.loadFile(buffer)) {
         std::cout << "Ошибка: не удалось открыть файл: " << filePath << "\n";
-        return;
+        reportLines.push_back("Ошибка: не удалось открыть файл.");
+        return reportLines;
     }
     std::string format = reader.detectFileType(buffer);
 
@@ -46,13 +48,11 @@ void SteganographyChecker::analyzeFile(const std::string& filePath) {
         dateStr = "неизвестна";
     }
 
-    std::vector<std::string> reportLines;
-    reportLines.push_back("Файл: " + filePath);
     reportLines.push_back("Формат: " + format);
     reportLines.push_back("Размер: " + std::to_string(fileSize) + " байт");
     reportLines.push_back("Дата изменения: " + dateStr);
 
-    std::cout << "\n========================================\n";
+    std::cout << "========================================\n";
     std::cout << "Анализ файла: " << filePath << "\n";
     std::cout << "Формат: " << format << "\n";
     std::cout << "Размер: " << fileSize << " байт\n";
@@ -76,109 +76,30 @@ void SteganographyChecker::analyzeFile(const std::string& filePath) {
     }
 
     if (threatDetected) {
-        std::cout << "Результат: Стеганография обнаружена!\n";
+        std::cout << "Результат: Возможна стеганография!\n";
     }
     else {
         std::cout << "Результат: Стеганография не обнаружена.\n";
     }
     std::cout << "========================================\n";
 
-    ReportGenerator report;
-    report.generateSingleReport(filePath, reportLines);
+    return reportLines;
 }
 
 
-void SteganographyChecker::analyzeDirectory(const std::string& dirPath) {
-    std::vector<std::pair<std::string, std::vector<std::string>>> fileReports;
-    try {
-        for (const auto& entry : fs::directory_iterator(dirPath)) {
-            if (!entry.is_regular_file()) continue;
-            std::string filePath = entry.path().string();
+std::vector<std::pair<std::string, std::vector<std::string>>> SteganographyChecker::analyzeDirectory(const std::string& dirPath) {
+    std::vector<std::pair<std::string, std::vector<std::string>>> allReports;
 
-            FileReader reader(filePath);
-            std::vector<uint8_t> buffer;
-            if (!reader.loadFile(buffer)) {
-                std::cout << "\nОшибка открытия файла: " << filePath << "\n\n";
-                continue;
-            }
-            std::string format = reader.detectFileType(buffer);
-
-            uintmax_t fileSize = 0;
-            try {
-                fileSize = fs::file_size(filePath);
-            }
-            catch (...) {
-                fileSize = 0;
-            }
-
-            std::string dateStr = "неизвестна";
-            try {
-                auto ftime = fs::last_write_time(filePath);
-                auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-                    ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
-                );
-                std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);
-
-                std::tm tmBuf{};
-                if (localtime_s(&tmBuf, &cftime) == 0) {
-                    char timeStr[20];
-                    if (std::strftime(timeStr, sizeof(timeStr), "%d.%m.%Y %H:%M:%S", &tmBuf)) {
-                        dateStr = timeStr;
-                    }
-                }
-            }
-            catch (...) {
-                dateStr = "неизвестна";
-            }
-
-            std::vector<std::string> reportLines;
-            reportLines.push_back("Файл: " + filePath);
-            reportLines.push_back("Формат: " + format);
-            reportLines.push_back("Размер: " + std::to_string(fileSize) + " байт");
-            reportLines.push_back("Дата изменения: " + dateStr);
-
-            std::cout << "\n========================================\n";
-            std::cout << "Анализ файла: " << filePath << "\n";
-            std::cout << "Формат: " << format << "\n";
-            std::cout << "Размер: " << fileSize << " байт\n";
-            std::cout << "Дата изменения: " << dateStr << "\n";
-
-            static const std::vector<std::string> relevant = {
-                "JPEG", "PNG", "BMP", "GIF", "TIFF", "PSD", "WEBP", "EMF", "WMF"
-            };
-            bool isRelevant = false;
-            for (const auto& f : relevant) {
-                if (format == f) { isRelevant = true; break; }
-            }
-
-            bool threatDetected = false;
-            if (!isRelevant) {
-                reportLines.push_back("Формат не поддерживается для стеганографического анализа.");
-                std::cout << "Формат не поддерживается для стеганографического анализа.\n";
-            }
-            else {
-                threatDetected = analyzeBuffer(filePath, format, buffer, reportLines);
-            }
-
-            if (threatDetected) {
-                std::cout << "Результат: Стеганография обнаружена!\n";
-            }
-            else {
-                std::cout << "Результат: Стеганография не обнаружена.\n";
-            }
-            std::cout << "========================================\n";
-
-            fileReports.emplace_back(filePath, reportLines);
-        }
-    }
-    catch (const fs::filesystem_error& e) {
-        std::cerr << "Ошибка при доступе к директории: " << e.what() << "\n";
-        return;
+    for (const auto& entry : fs::directory_iterator(dirPath)) {
+        if (!entry.is_regular_file()) continue;
+        std::string filePath = entry.path().string();
+        auto reportLines = analyzeFile(filePath);  // 🔁 используем переопределённую analyzeFile
+        allReports.emplace_back(filePath, reportLines);  // ✅ собираем вектор
     }
 
-    ReportGenerator report;
-    report.generateDirectoryReport(dirPath, fileReports);
+    return allReports;  // ✅ возвращаем в main.cpp для ReportGenerator
 }
+
 
 
 bool SteganographyChecker::isLSBRelevantFormat(const std::string& format) const {

@@ -8,7 +8,7 @@
 // Класс для сохранения отчётов анализа в файлы
 class ReportGenerator {
 public:
-    // Генерация отчёта для одного файла
+    ReportGenerator(bool suppressPrompt = false);
     void generateSingleReport(const std::string& filePath, const std::vector<std::string>& reportLines);
 
     // Генерация общего отчёта для директории
@@ -17,6 +17,7 @@ public:
 private:
     // Запрос у пользователя разрешения на сохранение файла
     bool askUserToSave(const std::string& description);
+    bool suppressPrompt_;
 };
 
 #endif // REPORT_GENERATOR_H

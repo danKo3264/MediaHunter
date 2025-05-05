@@ -131,7 +131,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="extension_checker.cpp" />
     <ClCompile Include="file_reader.cpp" />
+    <ClCompile Include="full_analyzer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="metadata_checker.cpp" />
     <ClCompile Include="report_generator.cpp" />
@@ -139,7 +141,9 @@
     <ClCompile Include="steganography_checker.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="extension_checker.h" />
     <ClInclude Include="file_reader.h" />
+    <ClInclude Include="full_analyzer.h" />
     <ClInclude Include="metadata_checker.h" />
     <ClInclude Include="report_generator.h" />
     <ClInclude Include="signature_scanner.h" />

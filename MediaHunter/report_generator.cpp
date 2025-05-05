@@ -6,9 +6,13 @@
 
 namespace fs = std::filesystem;
 
+ReportGenerator::ReportGenerator(bool suppressPrompt)
+    : suppressPrompt_(suppressPrompt) {
+}
+
 // Запрос у пользователя подтверждения сохранения
 bool ReportGenerator::askUserToSave(const std::string& description) {
-    std::cout << "\nСохранить " << description << "? (y/n): ";
+    std::cout << "Сохранить " << description << "? (y/n): ";
     char response;
     std::cin >> response;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
