@@ -11,6 +11,7 @@
 #include <vector>
 #include <utility>
 
+#include "pdf_analyzer.h"
 #include "file_reader.h"
 #include "report_generator.h"
 #include "signature_scanner.h"
@@ -33,20 +34,21 @@ void clearConsole() {
 
 // Главное меню
 void showMenu() {
-    cout << "=== MediaHunter ===\n"
+    std::cout << "=== MediaHunter ===\n"
         << "Выберите тип анализа:\n"
         << "1) Анализ фото/видео файлов\n"
         << "2) Анализ метаданных файла\n"
         << "3) Поиск стеганографических встраиваний\n"
         << "4) Проверка скрытых расширений файлов\n"
-        << "5) Общий анализ\n"
+        << "5) Анализ PDF-файлов\n"
+        << "6) Общий анализ\n"
         << "0) Выход\n"
         << "Введите номер пункта: ";
 }
 
 // Меню выбора файла или директории
 void showFileMenu() {
-    cout << "Выберите режим работы:\n"
+    std::cout << "Выберите режим работы:\n"
         << "1) Анализ файла\n"
         << "2) Анализ директории с файлами\n"
         << "0) Назад\n"
@@ -74,13 +76,13 @@ int main() {
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!\n";
+            std::cout << "Ошибка: введите число!\n";
             cin.get();
             continue;
         }
         if (choice == 0) break;
-        if (choice < 1 || choice > 5) {
-            cout << "Ошибка: выберите корректный пункт.\n";
+        if (choice < 1 || choice > 6) {
+            std::cout << "Ошибка: выберите корректный пункт.\n";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
@@ -93,19 +95,19 @@ int main() {
         if (!(cin >> fileChoice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Ошибка: введите число!\n";
+            std::cout << "Ошибка: введите число!\n";
             cin.get();
             continue;
         }
         if (fileChoice == 0) continue;
         if (fileChoice < 1 || fileChoice > 2) {
-            cout << "Ошибка: выберите корректный пункт.\n";
+            std::cout << "Ошибка: выберите корректный пункт.\n";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             continue;
         }
 
-        cout << "Введите путь к "
+        std::cout << "Введите путь к "
             << (fileChoice == 1 ? "файлу" : "директории")
             << ": ";
         string path;
@@ -113,12 +115,12 @@ int main() {
         getline(cin, path);
 
         if (!isValidPath(path, fileChoice == 1)) {
-            cout << "Ошибка: путь недействителен!\n";
+            std::cout << "Ошибка: путь недействителен!\n";
             cin.get();
             continue;
         }
 
-        cout << "Запуск анализа...\n\n";
+        std::cout << "Запуск анализа...\n\n";
 
         switch (choice) {
         case 1: {  // Анализ фото/видео (сигнатурный сканер YARA)
@@ -127,15 +129,15 @@ int main() {
 
                 if (fileChoice == 1) {
                     std::string threat = scanner.analyzeFile(path);
-                    cout << "========================================\n";
-                    cout << "Анализ файла: " << path << "\n\n";
+                    std::cout << "========================================\n";
+                    std::cout << "Анализ файла: " << path << "\n\n";
                     if (threat == "OK") {
-                        cout << "Результат: Угроз не обнаружено\n";
+                        std::cout << "Результат: Угроз не обнаружено\n";
                     }
                     else {
-                        cout << "Результат: Обнаружена угроза " << threat << "\n";
+                        std::cout << "Результат: Обнаружена угроза " << threat << "\n";
                     }
-                    cout << "========================================\n\n";
+                    std::cout << "========================================\n\n";
 
                     // Сохраняем результат в отчёт
                     ReportGenerator report;
@@ -154,15 +156,15 @@ int main() {
                         if (!entry.is_regular_file()) continue;
                         string filePath = entry.path().string();
                         std::string threat = scanner.analyzeFile(filePath);
-                        cout << "========================================\n";
-                        cout << "Анализ файла: " << filePath << "\n\n";
+                        std::cout << "========================================\n";
+                        std::cout << "Анализ файла: " << filePath << "\n\n";
                         if (threat == "OK") {
-                            cout << "Результат: Угроз не обнаружено\n";
+                            std::cout << "Результат: Угроз не обнаружено\n";
                         }
                         else {
-                            cout << "Результат: Обнаружена угроза " << threat << "\n";
+                            std::cout << "Результат: Обнаружена угроза " << threat << "\n";
                         }
-                        cout << "========================================\n";
+                        std::cout << "========================================\n";
 
                         vector<string> lines;
                         if (threat == "OK") {
@@ -173,7 +175,7 @@ int main() {
                         }
                         allReports.emplace_back(filePath, lines);
                     }
-                    cout << "\n";
+                    std::cout << "\n";
                     ReportGenerator report;
                     report.generateDirectoryReport(path, allReports);
                 }
@@ -188,14 +190,14 @@ int main() {
             MetadataChecker checker;
             if (fileChoice == 1) {
                 auto result = checker.analyzeFile(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateSingleReport(path, result);
             }
             else {
                 MetadataChecker checker;
                 auto reports = checker.analyzeDirectory(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateDirectoryReport(path, reports);
             }
@@ -206,13 +208,13 @@ int main() {
             SteganographyChecker checker;
             if (fileChoice == 1) {
                 auto result = checker.analyzeFile(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateSingleReport(path, result);
             }
             else {
                 auto reports = checker.analyzeDirectory(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateDirectoryReport(path, reports);
             }
@@ -223,21 +225,37 @@ int main() {
             ExtensionChecker checker;
             if (fileChoice == 1) {
                 auto result = checker.analyzeFile(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateSingleReport(path, result);
             }
             else {
                 auto reports = checker.analyzeDirectory(path);
-                cout << "\n";
+                std::cout << "\n";
                 ReportGenerator report;
                 report.generateDirectoryReport(path, reports);
             }
             break;
         }
 
+        case 5: {
+            PDFAnalyzer analyzer("rules.yar");
+            if (fileChoice == 1) {
+                auto result = analyzer.analyzeFile(path);
+                ReportGenerator report;
+                report.generateSingleReport(path, result);
+                
+            }
+            else {
+                auto reports = analyzer.analyzeDirectory(path);
+                ReportGenerator report;
+                report.generateDirectoryReport(path, reports);
 
-        case 5:
+            }
+            break;
+        }
+
+        case 6:
             FullAnalyzer analyzer("rules.yar");
 
             if (fileChoice == 1) {
@@ -254,11 +272,11 @@ int main() {
             break;
         }
 
-        cout << "\nНажмите Enter для возврата в меню...";
+        std::cout << "\nНажмите Enter для возврата в меню...";
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cin.get();
     }
 
-    cout << "Выход из программы.\n";
+    std::cout << "Выход из программы.\n";
     return 0;
 }
